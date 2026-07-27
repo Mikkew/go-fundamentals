@@ -2,7 +2,7 @@ package main
 
 func comments() {
 	//Comentario de una linea
-	// name := "Ricardo"
+	// name := "Miguel"
 	/*
 		Comentarios
 		más de una

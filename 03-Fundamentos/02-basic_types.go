@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-func main() {
+func getBasicTypes() {
 	var a int8 = 127
 	var b float32 = 3.14
 	var c string = "hola"
