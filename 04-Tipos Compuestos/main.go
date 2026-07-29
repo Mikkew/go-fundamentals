@@ -21,7 +21,7 @@ import "fmt"
 type Item struct {
 	SKU   string
 	Name  string
-	Price float64
+	Price int
 	Qty   int
 }
 
@@ -34,25 +34,23 @@ type Order struct {
 
 func main() {
 	order := Order{
-		ID:       "ORDER-123",
-		Customer: "Alfredo Samano",
+		ID:       "ORDER-1001",
+		Customer: "Emiliano Cuéllar",
 		Items: []Item{
-			{SKU: "ZPTS-0234", Name: "Zapatos", Price: 120.50, Qty: 2},
-			{SKU: "CAMI-5678", Name: "Camisa", Price: 45.99, Qty: 1},
-			{SKU: "PANT-9012", Name: "Pantalón", Price: 60.00, Qty: 3},
-			{SKU: "GAF-3456", Name: "Gafas de sol", Price: 80.00, Qty: 1},
+			{SKU: "TechComp453", Name: "Teclado", Price: 35, Qty: 1},
+			{SKU: "TechComp123", Name: "Monitor", Price: 150, Qty: 2},
 		},
 		Meta: map[string]string{
-			"City":   "Ciudad de México",
-			"Source": "Online",
+			"city":   "Mar de la Plata",
+			"source": "Facebook Ads",
 		},
 	}
 
 	fmt.Println("Order ID: ", order.ID)
 	fmt.Println("Cliente: ", order.Customer)
-	fmt.Println("Primer Item: ", order.Items[0].Name, ", SKU: ", order.Items[0].SKU, ", Precio: ", order.Items[0].Price, ", Cantidad: ", order.Items[0].Qty)
-	fmt.Println("Ciudad: ", order.Meta["City"])
-	order.Meta["Coupon"] = "MUNDIAL2026MEX"
-	fmt.Println("Coupon: ", order.Meta["Coupon"])
+	fmt.Println("Primer Item: ", order.Items[0].Name, "SKU: ", order.Items[0].SKU)
+	fmt.Println("Ciudad: ", order.Meta["city"])
+	order.Meta["coupon"] = "HOLACARADEBOLA"
+	fmt.Println("Cupón: ", order.Meta["coupon"])
 	fmt.Println(order)
 }
