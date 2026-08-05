@@ -9,11 +9,11 @@ func NewOrder(id, customer string) Order {
 	}
 }
 
-func AddItem(o *Order, item Item) {
+func (o *Order) AddItem(item Item) {
 	o.Items = append(o.Items, item)
 }
 
-func RemoveItem(o *Order, sku string) bool {
+func (o *Order) RemoveItem(sku string) bool {
 	for i := range o.Items {
 		if o.Items[i].SKU == sku {
 			o.Items = append(o.Items[:i], o.Items[i+1:]...)
@@ -27,7 +27,7 @@ func CalcLiteTotal(item Item) Money {
 	return item.Price * Money(item.Qty)
 }
 
-func CalcSubtotal(order Order) Money {
+func (order *Order) CalcSubtotal() Money {
 	var sum Money
 	for _, item := range order.Items {
 		sum += CalcLiteTotal(item)
@@ -35,7 +35,7 @@ func CalcSubtotal(order Order) Money {
 	return sum
 }
 
-func CalcTotalQty(order Order) int {
+func (order *Order) CalcTotalQty() int {
 	total := 0
 	for _, item := range order.Items {
 		total += item.Qty
@@ -43,11 +43,11 @@ func CalcTotalQty(order Order) int {
 	return total
 }
 
-func AddItems(order *Order, items ...Item) {
+func (order *Order) AddItems(items ...Item) {
 	order.Items = append(order.Items, items...)
 }
 
-func FindItem(order Order, sku string) (Item, bool) {
+func (order *Order) FindItem(sku string) (Item, bool) {
 	for _, item := range order.Items {
 		if item.SKU == sku {
 			return item, true
@@ -76,14 +76,35 @@ func IndexOfItem(order Order, sku string) (int, bool) {
 	return -1, false
 }
 
-func Compute(order Order) (t Totals, err error) {
+func ApplyDiscounts(order Order, fns ...DiscountFn) Money {
+	var discount Money
+	for _, fn := range fns {
+		discount += fn(order)
+	}
+	sub := order.CalcSubtotal()
+	if discount > sub {
+		return sub
+	}
+	return discount
+}
+
+func Compute(order Order, bundle Money, tax TaxFn, ship ShippingFn, discounts ...DiscountFn) (t Totals, err error) {
+	defer Track("Compute")()
 	if err = ValidateOrder(order); err != nil {
 		return Totals{}, err
 	}
 
-	t.Subtotal = CalcSubtotal(order)
+	t.Subtotal = order.CalcSubtotal()
+
+	if bundle > 0 {
+		t.Discount = bundle
+	} else {
+		t.Discount = ApplyDiscounts(order, discounts...)
+	}
+
+	t.Tax = tax(order)
+	t.Shipping = ship(order)
 	t.Total = t.Subtotal - t.Discount + t.Tax + t.Shipping
 
 	return t, nil // return
-
 }
