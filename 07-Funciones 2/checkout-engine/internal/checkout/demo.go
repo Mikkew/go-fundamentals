@@ -1,25 +1,27 @@
 package checkout
 
+import "fmt"
+
 func RunDemo() {
 	PrintHeader("Hola Checkout Engine :)")
 
 	order := NewOrder("ORDER-001", "EMILIANO")
 
-	AddItem(&order, Item{
+	order.AddItem(Item{
 		SKU:   "KB-001",
 		Name:  "Teclado",
 		Price: 3500,
 		Qty:   1,
 	})
 
-	AddItem(&order, Item{
+	order.AddItem(Item{
 		SKU:   "MB-024",
 		Name:  "Monitor",
 		Price: 15000,
 		Qty:   2,
 	})
 
-	AddItem(&order, Item{
+	order.AddItem(Item{
 		SKU:   "MB-054",
 		Name:  "CPU",
 		Price: 45000,
@@ -33,15 +35,15 @@ func RunDemo() {
 	PrintKV("Customer", order.Customer)
 	PrintKV("Items", len(order.Items))
 
-	remove := RemoveItem(&order, "KB-001")
+	remove := order.RemoveItem("KB-001")
 	PrintKV("Removed KB-001", remove)
 
 	PrintDivider()
 
-	sub := CalcSubtotal(order)
-	qty := CalcTotalQty(order)
+	sub := order.CalcSubtotal()
+	qty := order.CalcTotalQty()
 
-	PrintKV("Subtotal: ", sub)
+	PrintKV("Subtotal: ", StringUSD(sub))
 	PrintKV("Cantidad: ", qty)
 
 	PrintDivider()
@@ -52,8 +54,11 @@ func RunDemo() {
 	ChangeCustomerByPointer(&order, "Andrei Cuellar")
 	PrintKV("Customer si cambia", order.Customer)
 
-	setCity(&order, "Buenos Aires")
+	setCity(&order, "NL")
 	PrintKV("Ciudad (map si cambia)", order.Meta["city"])
+
+	//Setear la zona
+	setZone(&order, "NATIONAL")
 
 	PrintDivider()
 
@@ -72,13 +77,13 @@ func RunDemo() {
 		},
 	}
 
-	AddItems(&order, items...)
-	PrintKV("Cantidad total", CalcTotalQty(order))
+	order.AddItems(items...)
+	PrintKV("Cantidad total", order.CalcTotalQty())
 	PrintItems("Items", order.Items)
 
 	PrintDivider()
 
-	findItem, extraValueFind := FindItem(order, "MS-003")
+	findItem, extraValueFind := order.FindItem("MS-003")
 	PrintKV2("Item encontrado", findItem, extraValueFind)
 	getMeta, extraValueMeta := GetMeta(order, "city")
 	PrintKV2("Meta encontrado", getMeta, extraValueMeta)
@@ -90,9 +95,60 @@ func RunDemo() {
 	couponValue, couponError := ParseCoupon("SAVE30")
 	PrintKV2("Probando Coupon", couponValue, couponError)
 
+	//PrintDivider()
+
+	// computeValue, _ := Compute(order)
+	// PrintKV2("Computar Valores por nombre (TOTALES): ", computeValue, compueError)
+	//PrintKV("TOTALES: ", computeValue)
+
 	PrintDivider()
 
-	computeValue, _ := Compute(order)
-	// PrintKV2("Computar Valores por nombre (TOTALES): ", computeValue, compueError)
-	PrintKV("TOTALES: ", computeValue)
+	PrintKV("Descuento %: ", StringUSD(FlatDiscount(200)(order)))
+	th := ThresholdPercentDiscount(2000, 20)
+	PrintKV("Descuento Threshold: ", th(order))
+
+	PrintDivider()
+
+	cityDiscount := func(order Order) Money {
+		city, _ := GetMeta(order, "city")
+		if city == "Buenos Aires" {
+			return 200
+		}
+		return 0
+	}
+
+	PrintKV("Descuento especial por ciudad: ", cityDiscount(order))
+
+	PrintDivider()
+
+	discountKeyboard := MakeSKUDiscount("TECHProduct", 500)
+	discountHDMI := MakeSKUDiscount("HD-005", 100)
+
+	fmt.Println(discountKeyboard(order))
+	fmt.Println(discountHDMI(order))
+
+	PrintDivider()
+
+	state, _ := GetMeta(order, "city")
+	zone, _ := GetMeta(order, "zone")
+
+	taxFn := NewTaxByState(state)
+	shipFn := NewShippingByZone(zone)
+
+	promo := CompositeDiscount{
+		Name: "Promocion Febrero",
+		Fns:  []DiscountFn{
+			// FlatDiscount(100),
+			// ThresholdPercentDiscount(2000, 10),
+			// MakeSKUDiscount("HD-005", 200),
+		},
+	}
+
+	bundle := promo.Apply(order)
+	PrintKV("DESCUENTO RECURSIVO", StringUSD(bundle))
+
+	computeValue, computeError := Compute(order, bundle, taxFn, shipFn, FlatDiscount(5000), ThresholdPercentDiscount(2000, 10))
+	PrintKV2("Computar Valores por nombre (TOTALES): ", computeValue, computeError)
+	PrintKV("TOTAL: ", StringUSD(computeValue.Total))
+
 }
